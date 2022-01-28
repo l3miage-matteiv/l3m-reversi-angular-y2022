@@ -23,15 +23,15 @@ export class ReversiGameEngineService implements ReversiModelInterface {
 
   résuméDebug(): void {
     console.log( `________
-${BoardtoString(this.board)}
-________
-Au tour de ${this.turn}
-X représente ${charToTurn('X')}
-O représente ${charToTurn('O')}
-________
-Coups possibles (${this.whereCanPlay().length}) :
-${this.whereCanPlay().map( P => `  * ${P}`).join("\n")}
-    `);
+                ${BoardtoString(this.board)}
+                ________
+                Au tour de ${this.turn}
+                X représente ${charToTurn('X')}
+                O représente ${charToTurn('O')}
+                ________
+                Coups possibles (${this.whereCanPlay().length}) :
+                ${this.whereCanPlay().map( P => `  * ${P}`).join("\n")}
+                `);
   }
 
   // NE PAS MODIFIER
@@ -86,7 +86,15 @@ ${this.whereCanPlay().map( P => `  * ${P}`).join("\n")}
    * @returns L'état initiale du jeu, avec les 4 pions initiaux bien placés.
    */
   private initGameState(): GameState {
-    return {turn: this.turn, board: this.board};
+    let b = getEmptyBoard();
+
+    b[3][3] = b[4][4] = "Player2";
+    b[3][4] = b[4][3] = "Player1";
+
+    return {
+      turn: this.turn,
+      board: b
+    };
   }
 
   /**
@@ -95,8 +103,28 @@ ${this.whereCanPlay().map( P => `  * ${P}`).join("\n")}
    * @param j Indice de la colonne où poser le pion
    * @returns Une liste des positions qui seront prise si le pion est posée en x,y
    */
-  PionsTakenIfPlayAt(i: number, j: number): PlayImpact {
+   PionsTakenIfPlayAt(i: number, j: number): PlayImpact {
+    if (this.board[i]?.[j] !== 'Empty')
       return [];
+
+    const adversaire: Turn = this.turn === 'Player1' ? 'Player2' : 'Player1';
+    // Parcourir les 8 directions pour accumuler les coordonnées de pions prenables
+    return [ [1, 0], [1, -1], [1, 1], [0, 1], [0, -1], [-1, 0], [-1, -1], [-1, 1] ].reduce(
+        (L, [dx, dy]) => {
+            let c: C | undefined;
+            let X = i, Y = j;
+            let Ltmp: TileCoords[] = [];
+            do {Ltmp.push( [X += dx, Y += dy] );
+                c = this.board[X]?.[Y];
+            } while(c === adversaire);
+            if (c === this.turn && Ltmp.length > 1) {
+                Ltmp.pop(); // On en a pris un de trop...
+                L.push( ...Ltmp );
+            }
+            return L;
+        },
+        [] as TileCoords[]
+    ); // fin reduce
   }
 
   /**
@@ -105,7 +133,14 @@ ${this.whereCanPlay().map( P => `  * ${P}`).join("\n")}
    * @returns liste des positions jouables par le joueur courant.
    */
   whereCanPlay(): readonly TileCoords[] {
-    return [];
+    const L: TileCoords[] = [];
+    this.board.forEach( (line, i) => line.forEach( (c, j) => {
+      if (this.PionsTakenIfPlayAt(i, j).length > 0) {
+        L.push( [i, j] );
+      }
+    }));
+
+    return L;
   }
 
   /**
@@ -117,13 +152,26 @@ ${this.whereCanPlay().map( P => `  * ${P}`).join("\n")}
    * @returns Le nouvel état de jeu si le joueur courant joue en i,j, l'ancien état si il ne peut pas jouer en i,j
    */
   private tryPlay(i: number, j: number): GameState {
-    return {turn: this.turn, board: this.board};
+    const L = this.PionsTakenIfPlayAt(i, j);
+    if (L.length > 0) {
+      // On crée un nouveau plateau contenant la nouvelle configuration et on change de joueur courant
+      const board = this.board.map( L => [...L]) as Board; // On est obligé de préciser à Typescript qu'on a bien un Board, car il ne peut qu'inférer le type C[][]
+      [...L, [i, j]].forEach( ([x, y]) => { // Pour chaque pion pris ainsi que pour la position i,j on place un pion du joueur courant
+        board[x][y] = this.turn
+      });
+      return {
+        turn: this.turn == "Player1" ? "Player2" : "Player1",
+        board // équivalent à board: board
+      };
+    } else {
+      return {turn: this.turn, board: this.board};
+    }
   }
 
   /**
    * @returns vrai si le joueur courant peut jouer quelque part, faux sinon.
    */
   private canPlay(): boolean {
-      return false;
+      return this.whereCanPlay().length > 0;
   }
 }

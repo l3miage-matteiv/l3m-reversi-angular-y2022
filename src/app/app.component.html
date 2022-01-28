@@ -1,4 +1,13 @@
 <pre>
 Utilisez la console de dévéloppement pour interagir avec le service
 (pressez contrôle-majuscule-i).
+  <html>
+    <table>
+      <tr *ngFor="let Lignes of PlateauToString">
+        <td *ngFor="let Joueur of Lignes">
+          {{ Joueur }}
+        </td>
+      </tr>
+    </table>
+  </html>
 </pre>

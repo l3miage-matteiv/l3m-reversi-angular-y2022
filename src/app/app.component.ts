@@ -1,5 +1,7 @@
+import { Board } from './ReversiDefinitions';
 import { Component } from '@angular/core';
 import { ReversiGameEngineService } from './reversi-game-engine.service';
+import { cToString } from './ReversiDefinitions';
 
 @Component({
   selector: 'app-root',
@@ -10,4 +12,11 @@ export class AppComponent {
 
   constructor(public RGS: ReversiGameEngineService) {}
 
+  Plateau = this.RGS.board.map( L => [...L]) as Board;
+
+  PlateauToString = this.Plateau.map(
+    l => l.map(                       // Lignes
+      c => cToString(c)               // Collones ou chaque case
+    )
+  );
 }
